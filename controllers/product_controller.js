@@ -11,7 +11,7 @@ const getAllProducts = async (req, res) => {
 
             // Hitung rata-rata rating
             const totalRating = reviews.reduce((acc, review) => acc + review.rating, 0);
-            const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+            const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : "0.0";
 
             // Simpan rating ke database (hanya jika ada perubahan)
             await Product.findByIdAndUpdate(product._id, { rating: averageRating });
@@ -40,7 +40,6 @@ const getProductById = async (req, res) => {
         }
 
         const product = await Product.findById(id).populate("reviews").lean();
-        console.log(id);
 
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
@@ -58,8 +57,7 @@ const getProductById = async (req, res) => {
         // Tambahkan rating ke objek product
         product.reviews = reviews;
         product.rating = averageRating;
-        console.log("Product:", product);
-        console.log(reviews);
+        
 
         res.json({
             success: true,
@@ -71,4 +69,74 @@ const getProductById = async (req, res) => {
     }
 };
 
-module.exports = { getAllProducts, getProductById };
+const getProductByIdWithSortedReviews = async (req, res) => {
+    try {
+        const {id} = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ message: "Invalid product ID" });
+        }
+        
+        const product = await Product.findById(id).lean();
+        if (!product)   {
+            return res.status(404).json({message: "Product not found"});
+        }  
+
+        const reviews = await Review.find({ product_id: id }).sort({ createdAt: -1 });
+        
+        product.reviews = reviews;
+
+        res.json({
+            suscess: true,
+            message: "Product found",
+            data: product,
+        }); 
+
+        } catch (error) {
+            res.status(500).json({ message: "Error: Failed to get product", error: error.message });
+        }
+    };
+    
+const getProductByIdWithPictureReviews = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const product = await Product.findById(id).lean();
+        if (!product)   {
+            return res.status(404).json({message: "Product not found"});
+        }  
+        const reviews = await Review.find({ product_id: id, picture: { $ne: "" } });
+        product.reviews = reviews;
+        res.json({
+            success: true,
+            message: "Product found",
+            data: product,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error: Failed to get product", error: error.message });
+    }
+};
+
+const getProductByIdWithSelectedRating = async (req, res) => {
+    try {
+        const {id, rating} = req.params;
+        const selectedRating = parseInt(rating);
+        if (selectedRating < 1 || selectedRating > 5) {
+            return res.status(400).json({message: "Rating must be between 1 and 5"});
+        }
+        const product = await Product.findById(id).lean();
+        if (!product)   {
+            return res.status(404).json({message: "Product not found"});
+        }  
+        const reviews = await Review.find({ product_id: id, rating: selectedRating });
+        product.reviews = reviews;
+        res.json({
+            success: true,
+            message: "Product found",
+            data: product,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error: Failed to get product", error: error.message });
+    }
+};
+
+module.exports = { getAllProducts, getProductById, getProductByIdWithSortedReviews, getProductByIdWithPictureReviews, getProductByIdWithSelectedRating };

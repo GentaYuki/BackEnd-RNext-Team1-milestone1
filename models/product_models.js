@@ -18,7 +18,13 @@ const Product = new mongoose.Schema({
 
     rating : {
         type : Number, default : 0
+    },
+    sizeFit: {
+        small: { type: String, default: "2%" },
+        trueToSize: { type: String, default: "85%" },
+        large: { type: String, default: "13%" }
     }
+   
     
 }, 
     {   

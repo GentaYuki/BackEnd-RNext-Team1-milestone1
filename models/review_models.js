@@ -32,6 +32,9 @@ const Review = new mongoose.Schema({
 
     ThumbUp_rate: {
         type : Number, required: true, default: 0
+    },
+    picture : {
+        type : String, required: false, default: ""
     }
 },
     {timestamps: true}
